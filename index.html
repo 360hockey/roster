@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6EB0E2">
+<title>Rocky Mountain Moose Hockey | Roster Builder</title>
+<style>
+:root{--bg:#080b0f;--panel:#111820;--panel2:#18232d;--line:#34495a;--text:#f7fbff;--muted:#a9bac8;--green:#6EB0E2;--green2:#203e55;--gold:#e7bd63;--red:#d97878;--blue:#6EB0E2}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#24445d 0,#111820 45%,#080b0f 100%);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:100vh}
+button,input,select{font:inherit}button{cursor:pointer}
+header{display:flex;align-items:center;gap:18px;padding:18px clamp(16px,3vw,42px);border-bottom:1px solid var(--line);background:#0b110edb;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.logo{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 12px #0008)}.brand{min-width:0}.eyebrow{color:var(--green);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.brand h1{font-size:clamp(20px,3vw,30px);line-height:1.05;margin:4px 0 3px;font-weight:900;letter-spacing:.02em}.brand p{margin:0;color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}.header-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+button,.file-button{border:1px solid var(--line);background:#18232d;color:var(--text);border-radius:8px;padding:9px 12px;font-weight:700;font-size:12px}.primary{background:var(--green);border-color:var(--green);color:#10180f}.quiet{background:transparent}.danger{color:#ffb1a9;border-color:#65403b;background:#291b19}
+main{max-width:1600px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 50px}
+.topline{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}.topline h2{font-size:22px;margin:0 0 4px}.topline p{margin:0;color:var(--muted);font-size:13px}
+.division-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0}.division-tab{padding:10px 16px;border-radius:7px;background:#111820;border:1px solid var(--line);color:#dceaf5}.division-tab.active{background:var(--green);color:#10180f;border-color:var(--green)}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}.roster-panel,.sidebar{background:linear-gradient(160deg,#17232d,#0e141b);border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 40px #0003}.roster-panel{padding:18px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}.panel-head h3{margin:0;font-size:16px;letter-spacing:.04em;text-transform:uppercase}.counter{color:var(--green);font-weight:800;font-size:12px}
+.lines-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}.unit{background:#0c1218;border:1px solid #34495a;border-radius:10px;padding:12px;min-width:0}.unit-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#c7d2c9;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em}.unit-title span:last-child{color:#728477;font-size:10px}
+.slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.slots.defense{grid-template-columns:repeat(2,minmax(0,1fr))}
+.slot{min-height:84px;border:1px dashed #40586b;border-radius:8px;padding:8px;background:#111b24;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;transition:.15s}
+.slot.dragover{border:2px solid var(--green);background:#1c3420}.slot.filled{border-style:solid;border-color:#4c7948;background:linear-gradient(145deg,#203a25,#17261b)}
+.slot .pos{font-size:10px;color:#829487;text-transform:uppercase;letter-spacing:.12em;font-weight:800}.slot .name{font-weight:800;font-size:12px;line-height:1.25;margin-top:5px;overflow-wrap:anywhere}.slot .jersey{font-size:10px;color:#b0c0b4;margin-top:3px}.slot .rating{font-size:11px;font-weight:900;margin-top:5px}.slot.rating-low{border-color:#a9574f;background:linear-gradient(145deg,#452521,#241816)}.slot.rating-mid{border-color:#9c8240;background:linear-gradient(145deg,#40371d,#241f15)}.slot.rating-high{border-color:#578c4d;background:linear-gradient(145deg,#24452a,#17261b)}
+.slot .remove{position:absolute;right:4px;top:3px;border:0;background:transparent;color:#a4b4a8;padding:2px 5px;font-size:15px;line-height:1}
+.goalies{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sidebar{padding:16px;position:sticky;top:112px}.sidebar h3{margin:0;font-size:16px}.sidebar-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.available-count{color:var(--green);font-weight:800;font-size:11px}.search{width:100%;margin:13px 0 9px;padding:10px 11px;border-radius:7px;border:1px solid var(--line);background:#0e1510;color:var(--text);outline:none}.filters{display:flex;gap:6px;margin-bottom:12px}.filter{font-size:10px;padding:6px 9px}.filter.active{background:#244d6b;border-color:#6EB0E2;color:#fff}
+.player-list{display:flex;flex-direction:column;gap:7px;max-height:62vh;overflow:auto;padding-right:3px}.player{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;border:1px solid #6EB0E2;background:#17344a;cursor:grab;user-select:none;transition:.12s}.player:active{cursor:grabbing}.player.assigned,.player.unavailable{background:#252c27;border-color:#39433c;color:#7f8a81;cursor:not-allowed;filter:saturate(.35)}.player .number{width:30px;height:30px;border-radius:7px;background:#6EB0E2;color:#07111a;display:grid;place-items:center;font-size:12px;font-weight:900;flex:none}.player.assigned .number,.player.unavailable .number{background:#414943;color:#a0aaa2}.player-info{min-width:0;flex:1}.player-name{font-weight:800;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.player-meta{color:#a9b9ac;font-size:10px;margin-top:2px}.player.assigned .player-meta,.player.unavailable .player-meta{color:#737d75}.assigned-tag{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#8d9990;font-weight:800}
+.empty{padding:24px 12px;text-align:center;color:#8c9c90;border:1px dashed #35443a;border-radius:8px;font-size:12px}.source-note{font-size:11px;color:#8fa092;margin-top:12px;line-height:1.5}.status{margin:0 0 15px;padding:10px 12px;border-radius:8px;background:#1b2a20;border:1px solid #344b37;color:#c9ddcb;font-size:12px}.status.error{background:#2b1d1a;border-color:#69443c;color:#ffc2b8}.status:empty{display:none}
+.modal-backdrop{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:20px;z-index:20}.modal-backdrop.show{display:flex}.modal{width:min(520px,100%);background:#17221a;border:1px solid var(--line);border-radius:12px;padding:20px;box-shadow:0 20px 80px #0009}.modal h3{margin:0 0 12px}.modal p{font-size:13px;color:var(--muted)}.modal input{width:100%;padding:10px;background:#0d1510;border:1px solid var(--line);border-radius:7px;color:white;margin:5px 0 12px}.modal-actions{display:flex;justify-content:flex-end;gap:8px}
+footer{text-align:center;color:#66766b;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin:28px 0 0}
+@media(max-width:1050px){.workspace{grid-template-columns:1fr}.sidebar{position:static}.player-list{max-height:420px}.lines-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){header{padding:12px}.logo{width:52px;height:52px}.header-actions button{padding:8px;font-size:10px}.lines-grid{grid-template-columns:1fr}.roster-panel{padding:12px}.slots{gap:5px}.slot{min-height:76px;padding:5px}.slot .name{font-size:11px}.goalies{gap:5px}}
+@media print{body{background:white;color:#111}.sidebar,.header-actions,.division-tabs,.remove,.topline p,.status,footer{display:none!important}header{position:static;background:white;color:#111;border-bottom:2px solid #222}.brand p,.eyebrow{color:#333}.workspace{display:block}.roster-panel,.unit{background:white;border:1px solid #aaa;box-shadow:none}.unit-title,.slot .pos,.slot .name,.slot .jersey{color:#111}.slot{background:#fff;border:1px solid #888;min-height:65px}.slot.filled{background:#f2f6f2}.lines-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* Rocky Mountain Moose brand refresh: #6EB0E2, white and black */
+:root{--bg:#080b0f;--panel:#111820;--panel2:#18232d;--line:#34495a;--text:#f7fbff;--muted:#a9bac8;--green:#6EB0E2;--green2:#203e55;--gold:#e7bd63;--red:#d97878;--blue:#6EB0E2}
+body{background:radial-gradient(ellipse at 50% -20%,#24445d 0,#111820 42%,#080b0f 100%);color:#f7fbff}
+header{background:#080b0fe8;border-bottom-color:#34495a}
+.eyebrow,.counter,.available-count{color:#6EB0E2}
+button,.file-button{background:#18232d;border-color:#40586b;color:#f7fbff}
+button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;color:#07111a}
+.division-tab{background:#111820;border-color:#34495a;color:#dceaf5}
+.roster-panel,.sidebar{background:linear-gradient(160deg,#17232d,#0e141b);border-color:#34495a}
+.unit{background:#0c1218;border-color:#34495a}
+.unit-title{color:#eaf4fb}
+.slot{background:#111b24;border-color:#40586b}
+.slot.dragover{border-color:#6EB0E2;background:#1c3447}
+.slot.filled{border-color:#6EB0E2;background:linear-gradient(145deg,#203e55,#111b24)}
+.slot .pos{color:#9cb6c9}
+.slot.rating-high{border-color:#6EB0E2;background:linear-gradient(145deg,#244d6b,#142331)}
+.slot.rating-mid{border-color:#b18c43;background:linear-gradient(145deg,#3b321e,#201d16)}
+.slot.rating-low{border-color:#a95757;background:linear-gradient(145deg,#432323,#241718)}
+.player{background:#17344a;border-color:#6EB0E2;color:#f7fbff}
+.player .number{background:#6EB0E2;color:#07111a}
+.player.assigned,.player.unavailable{background:#252b31;border-color:#454d55;color:#9aa4ad;filter:none}
+.player.assigned .number,.player.unavailable .number{background:#454d55;color:#d2d8dd}
+.player-meta{color:#c1d3e0}
+.player.assigned .player-meta,.player.unavailable .player-meta{color:#9aa4ad}
+.filter.active{background:#244d6b;border-color:#6EB0E2;color:#fff}
+.search{background:#090e13;border-color:#34495a;color:#fff}
+.status{background:#142638;border-color:#315574;color:#e3f2fc;overflow-wrap:anywhere}
+.status.error{background:#321e20;border-color:#77474b;color:#ffd6d6}
+.modal{background:#111b24;border-color:#40586b}.modal input{background:#080e14;border-color:#40586b}
+.empty{border-color:#40586b;color:#a9bac8}
+@media print{body{background:#fff;color:#111}.slot.filled{background:#e8f3fa;border-color:#6EB0E2}.unit-title,.slot .pos,.slot .name,.slot .jersey{color:#111}}
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="https://irp.cdn-website.com/53e335b4/dms3rep/multi/opt/moose-1920w.png" alt="Rocky Mountain Moose logo" onerror="this.style.display='none'">
+  <div class="brand"><div class="eyebrow">Rocky Mountain Moose Hockey Club</div><h1>ROSTER BUILDER</h1><p>Build your lineup. Own the ice.</p></div>
+  <div class="header-actions">
+    <button class="quiet" id="addPlayerBtn">＋ Add Player</button>
+    <button class="quiet" id="refreshBtn">Refresh Sheet</button>
+    <button class="quiet" id="resetBtn">Reset Roster</button>
+    <button class="primary" id="printBtn">Print / Save PDF</button>
+  </div>
+</header>
+<main>
+  <div class="topline"><div><h2 id="divisionHeading">15U Blue Roster</h2><p>Drag an available player into a position, or click a player and then choose an open roster slot.</p></div><div class="counter" id="filledSummary">0 / 21 POSITIONS FILLED</div></div>
+  <div id="status" class="status" role="status"></div>
+  <nav class="division-tabs" aria-label="Roster divisions">
+    <button class="division-tab active" data-division="15U Blue">15U Blue</button>
+    <button class="division-tab" data-division="15U Black">15U Black</button>
+    <button class="division-tab" data-division="16U">16U</button>
+    <button class="division-tab" data-division="19U">19U</button>
+  </nav>
+  <div class="workspace">
+    <section class="roster-panel">
+      <div class="panel-head"><h3>Lineup / Depth Chart</h3><span class="counter" id="divisionCount">0 players assigned</span></div>
+      <div class="lines-grid" id="forwardLines"></div>
+      <div class="lines-grid" id="defenseLines"></div>
+      <div class="unit"><div class="unit-title"><span>Goaltenders</span><span>3 slots</span></div><div class="goalies" id="goalieSlots"></div></div>
+    </section>
+    <aside class="sidebar">
+      <div class="sidebar-head"><h3>Player Pool</h3><span class="available-count" id="availableCount">0 AVAILABLE</span></div>
+      <input class="search" id="search" type="search" placeholder="Search players by name, number, position…">
+      <div class="filters">
+        <button class="filter active" data-filter="all">All</button><button class="filter" data-filter="F">Forwards</button><button class="filter" data-filter="D">Defense</button><button class="filter" data-filter="G">Goalies</button>
+      </div>
+      <div class="player-list" id="playerList"><div class="empty">Loading players from the published Test tab…</div></div>
+      <div class="source-note">Blue = explicitly marked available in the Google Sheet. Grey = unavailable, availability not set, or already assigned to a roster. Players assigned to another division remain unavailable while building this club's rosters.</div>
+    </aside>
+  </div>
+  <footer>Rocky Mountain Moose Hockey Club · Roster Builder</footer>
+</main>
+<div class="modal-backdrop" id="addModal">
+ <div class="modal"><h3>Add a Player</h3><p>Add a player manually if they are not listed in the published sheet. This player is saved in this browser.</p>
+ <label>Player name<input id="newName" placeholder="First Last"></label><label>Jersey number (optional)<input id="newNumber" placeholder="e.g. 27"></label><label>Position<select id="newPosition"><option value="F">Forward</option><option value="D">Defense</option><option value="G">Goalie</option></select></label><label>Team / division<select id="newTeam"><option>15U Blue</option><option>15U Black</option><option>16U</option><option>19U</option><option>Unassigned / All</option></select></label>
+ <div class="modal-actions"><button id="cancelAdd">Cancel</button><button class="primary" id="saveAdd">Add Player</button></div></div>
+</div>
+<script>
+(() => {
+const PUBLISHED_ID = "2PACX-1vSWJPgIwaKz7oWWQew4njSI9wm-Y0QuKbqxBPbEWoilm31nOSgacolofCaXciIETk2Hw5nSjPhKDbPv";
+const SHEET_NAME = "Test";
+ const SHEET_GID = "1710339715";
+const DIVISIONS = ["15U Blue","15U Black","16U","19U"];
+const STORAGE_KEY = "rmm-roster-builder-v2-gid-1710339715";
+const slotIds = [
+ ...Array.from({length:4},(_,line)=>Array.from({length:3},(_,i)=>`F-${line+1}-${i+1}`)).flat(),
+ ...Array.from({length:3},(_,line)=>Array.from({length:2},(_,i)=>`D-${line+1}-${i+1}`)).flat(),
+ ...Array.from({length:3},(_,i)=>`G-${i+1}`)
+];
+let players = [], rosters = Object.fromEntries(DIVISIONS.map(d=>[d,{}]));
+let currentDivision = DIVISIONS[0], selectedPlayer = null, activeFilter = "all";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function setStatus(msg, error=false){$("status").textContent=msg||"";$("status").classList.toggle("error",!!error)}
+function norm(s){return String(s??"").toLowerCase().replace(/[^a-z0-9]/g,"")}
+function getField(row, names){const keys=Object.keys(row);for(const n of names){const k=keys.find(x=>norm(x)===norm(n));if(k && row[k]!==undefined && String(row[k]).trim()!=="")return String(row[k]).trim()}return ""}
+function guessPosition(v){
+ const raw=String(v??"").trim().toLowerCase(),s=norm(raw);
+ if(["g","goalie","goaltender","goalkeeper","goalie1","goalie2","goalie3"].includes(s)||s.includes("goalie")||s.includes("goaltender"))return "G";
+ if(["d","def","defense","defence","defenseman","defenceman","ld","rd","defensepair"].includes(s)||s.includes("defen")||/\b(d|def)\b/.test(raw))return "D";
+ if(["f","fwd","forward","c","center","centre","wing","lw","rw","leftwing","rightwing"].includes(s)||s.includes("forward")||["grinder","goalscorer","playmaker","enforcer"].includes(s))return "F";
+ return "";
+}
+function parseAvailability(v){
+ const raw=String(v??"").trim().toLowerCase();
+ const s=norm(raw);
+ if(["yes","y","true","1","available","avail","active","checked","on","x","check"].includes(s)||["✓","✔","☑","☒"].includes(raw))return true;
+ if(["no","n","false","0","unavailable","notavailable","inactive","out","unchecked","off"].includes(s)||["☐","□","◻","✗","✘"].includes(raw))return false;
+ // Blank or unfamiliar values should not silently mark a player unavailable.
+ return true;
+}
+function parseCSVMatrix(text){const rows=[];let row=[],cell="",quoted=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c==='"'&&quoted&&n==='"'){cell+='"';i++}else if(c==='"'){quoted=!quoted}else if(c===","&&!quoted){row.push(cell);cell=""}else if((c==="\n"||c==="\r")&&!quoted){if(c==="\r"&&n==="\n")i++;row.push(cell);rows.push(row);row=[];cell=""}else cell+=c}row.push(cell);if(row.some(x=>String(x).trim()))rows.push(row);return rows}
+function sheetPlayers(csv){
+ const matrix=parseCSVMatrix(csv).map((r,i)=>i===0?r.map((v,j)=>j===0?String(v).replace(/^\uFEFF/,"").trim():String(v??"").trim()):r.map(v=>String(v??"").trim()));
+ if(!matrix.length)return [];
+ const specs=[
+  {team:"15U Blue",number:0,name:1,position:2,available:3},
+  {team:"15U Black",number:5,name:6,position:7,available:8},
+  {team:"16U",number:10,name:11,rating:12,type:13,available:14},
+  {team:"19U",number:16,name:17,rating:18,type:19,available:20}
+ ];
+ // Require all four roster groups at their exact columns; reject unrelated worksheets.
+ const headerIndex=matrix.findIndex(r=>specs.every(sp=>
+  norm(r[sp.name]||"")==="playername" &&
+  norm(r[sp.available]||"")==="available"
+ ));
+ if(headerIndex<0) throw new Error("Selected worksheet does not contain the four expected roster groups in columns A:U.");
+ const firstDataRow=headerIndex+1;
+ const out=[];
+ for(let ri=firstDataRow;ri<matrix.length;ri++){
+  const r=matrix[ri]||[];
+  for(const spec of specs){
+   const name=String(r[spec.name]??"").trim();
+   if(!name||["playername","name","player"].includes(norm(name)))continue;
+   // Team heading rows and stray notes do not have a player number.
+   const number=String(r[spec.number]??"").trim();
+   const rawPosition=spec.position!==undefined?String(r[spec.position]??"").trim():"";
+   const type=spec.type!==undefined?String(r[spec.type]??"").trim():"";
+   const label=rawPosition||type;
+   const position=guessPosition(label);
+   const availabilityRaw=String(r[spec.available]??"").trim();
+   const available=parseAvailability(availabilityRaw);
+   const rating=spec.rating!==undefined?String(r[spec.rating]??"").trim():"";
+   const id=`sheet-${norm(spec.team)}-${norm(number||name)}-${norm(name)}`;
+   out.push({id,name,number,position,positionLabel:label,team:spec.team,available,availabilityRaw,rating,type,source:"sheet"});
+  }
+ }
+ return uniquePlayers(out);
+}
+function uniquePlayers(list){const seen=new Set();return list.filter(p=>{const k=(p.id||p.name).toLowerCase();if(seen.has(k))return false;seen.add(k);return true})}
+async function loadSheet(){
+ const url=`https://docs.google.com/spreadsheets/d/e/${PUBLISHED_ID}/pub?gid=${SHEET_GID}&single=true&output=csv&_=${Date.now()}`;
+ try{
+  const res=await fetch(url,{cache:"no-store"});
+  if(!res.ok)throw new Error(`Google Sheets returned ${res.status}`);
+  const txt=await res.text();
+  if(!txt.trim()||txt.trim().startsWith("<"))throw new Error("Google did not return CSV data for the selected worksheet.");
+  const converted=sheetPlayers(txt);
+  if(!converted.length)throw new Error("No players found in the expected roster columns A:U.");
+  const manual=players.filter(p=>p.source==="manual");
+  players=uniquePlayers([...converted,...manual]);
+  const counts=DIVISIONS.map(d=>{
+   const team=converted.filter(p=>p.team===d);
+   return `${d}: ${team.length} total, ${team.filter(p=>p.available===true).length} available, ${team.filter(p=>p.available===false).length} unavailable, ${team.filter(p=>p.available===null).length} blank/unknown`;
+  }).join(" · ");
+  setStatus(`Loaded ${converted.length} players from “${SHEET_NAME}” only (gid ${SHEET_GID}). ${counts}.`);
+ }catch(e){
+  players=players.filter(p=>p.source==="manual");
+  setStatus(`Could not load “${SHEET_NAME}” (gid ${SHEET_GID}): ${e?.message||"connection error"}. No other worksheet was loaded.`,true);
+ }
+}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({players:players.filter(p=>p.source==="manual"),rosters}))}catch(e){}}
+function restore(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");if(data.rosters)rosters={...rosters,...data.rosters};if(data.players)players.push(...data.players)}catch(e){}}
+function assignedMap(){const map={};for(const d of DIVISIONS)for(const [slot,id] of Object.entries(rosters[d]||{}))if(id)map[id]={division:d,slot};return map}
+function getPlayer(id){return players.find(p=>p.id===id)}
+function slotLabel(id){const [type,line,num]=id.split("-");return type==="F"?`Forward ${num}`:type==="D"?`Defense ${num}`:"Goalie"}
+function ratingClass(p){if(!p||!p.rating||!Number.isFinite(Number(p.rating)))return "";const peers=players.filter(x=>x.team===currentDivision&&x.rating!==""&&Number.isFinite(Number(x.rating))).map(x=>Number(x.rating));if(peers.length<2)return "rating-mid";const min=Math.min(...peers),max=Math.max(...peers),v=Number(p.rating);if(max===min)return "rating-mid";const pct=(v-min)/(max-min);return pct>=.67?"rating-high":pct<=.33?"rating-low":"rating-mid"}
+function makeSlot(id){const assignedId=rosters[currentDivision][id],p=assignedId&&getPlayer(assignedId);const is15=currentDivision.startsWith("15U");const detail=p?(is15?(p.positionLabel||p.position):p.type):"";return `<div class="slot ${p?"filled "+ratingClass(p):""}" data-slot="${id}" tabindex="0" aria-label="${esc(id)} ${p?esc(p.name):"empty"}">${p?`<button class="remove" data-remove="${esc(id)}" title="Remove player" aria-label="Remove ${esc(p.name)}">×</button><div class="pos">${id.startsWith("F")?"F":id.startsWith("D")?"D":"G"} · ${id.split("-").slice(1).join(".")}</div><div class="name">${esc(p.name)}</div><div class="jersey">${p.number?`#${esc(p.number)} · `:""}${esc(detail)}</div>${!is15&&p.rating!==""?`<div class="rating">Rating: ${esc(p.rating)}</div>`:""}`:`<div class="pos">${id.startsWith("F")?"Forward":id.startsWith("D")?"Defense":"Goalie"}</div><div class="name">Drop player here</div><div class="jersey">${esc(id.split("-").slice(1).join(" · "))}</div>`}</div>`}
+function renderRoster(){
+ $("divisionHeading").textContent=currentDivision+" Roster";
+ document.querySelectorAll(".division-tab").forEach(b=>b.classList.toggle("active",b.dataset.division===currentDivision));
+ $("forwardLines").innerHTML=Array.from({length:4},(_,i)=>`<div class="unit"><div class="unit-title"><span>Forward Line ${i+1}</span><span>3 forwards</span></div><div class="slots">${[1,2,3].map(n=>makeSlot(`F-${i+1}-${n}`)).join("")}</div></div>`).join("");
+ $("defenseLines").innerHTML=Array.from({length:3},(_,i)=>`<div class="unit"><div class="unit-title"><span>Defense Pair ${i+1}</span><span>2 defense</span></div><div class="slots defense">${[1,2].map(n=>makeSlot(`D-${i+1}-${n}`)).join("")}</div></div>`).join("");
+ $("goalieSlots").innerHTML=[1,2,3].map(n=>makeSlot(`G-${n}`)).join("");
+ const count=Object.values(rosters[currentDivision]).filter(Boolean).length;
+ $("filledSummary").textContent=`${count} / 21 POSITIONS FILLED`;$("divisionCount").textContent=`${count} players assigned`;
+ document.querySelectorAll(".slot").forEach(el=>{
+  el.addEventListener("dragover",e=>{e.preventDefault();el.classList.add("dragover")});
+  el.addEventListener("dragleave",()=>el.classList.remove("dragover"));
+  el.addEventListener("drop",e=>{e.preventDefault();el.classList.remove("dragover");const id=e.dataTransfer.getData("text/player");if(id)assign(id,el.dataset.slot)});
+  el.addEventListener("click",()=>{if(selectedPlayer){assign(selectedPlayer,el.dataset.slot);selectedPlayer=null;renderPlayers()}});
+  el.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&selectedPlayer){e.preventDefault();assign(selectedPlayer,el.dataset.slot);selectedPlayer=null;renderPlayers()}});
+ });
+ document.querySelectorAll("[data-remove]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();delete rosters[currentDivision][b.dataset.remove];save();render()}));
+}
+function assign(playerId,slotId){
+ const player=getPlayer(playerId);if(!player)return;
+ if(player.available!==true){setStatus(`${player.name} is not explicitly marked available in the Google Sheet. Check the Available checkbox.`,true);return}
+ if(!player.position){setStatus(`${player.name} does not have a recognizable Position/Type value in the sheet.`,true);return}
+ const existing=assignedMap()[playerId];if(existing){setStatus(`${player.name} is already assigned to ${existing.division}. Remove them there before moving them.`,true);return}
+ const current=rosters[currentDivision][slotId];if(current){setStatus("That position is already filled. Remove the current player first.",true);return}
+ const type=slotId[0];if(player.position!==type){setStatus(`${player.name} is listed as ${player.position==="F"?"a forward":player.position==="D"?"a defenseman":"a goalie"}. Choose a matching position.`,true);return}
+ rosters[currentDivision][slotId]=playerId;selectedPlayer=null;setStatus(`${player.name} added to ${currentDivision}.`);save();render();
+}
+function renderPlayers(){
+ const q=$("search").value.toLowerCase().trim(),map=assignedMap();
+ const pool=players.filter(p=>{
+  const divisionMatch=p.team==="Unassigned / All"||p.team===currentDivision;
+  const matchesFilter=activeFilter==="all"||p.position===activeFilter;
+  const matchesQuery=!q||[p.name,p.number,p.position,p.team,p.rating,p.type].join(" ").toLowerCase().includes(q);
+  return divisionMatch&&matchesFilter&&matchesQuery;
+ }).sort((a,b)=>a.name.localeCompare(b.name));
+ const available=pool.filter(p=>p.available===true&&!map[p.id]).length;
+ $("availableCount").textContent=`${available} AVAILABLE`;
+ $("playerList").innerHTML=pool.length?pool.map(p=>{const a=map[p.id],unavailable=p.available!==true,disabled=!!a||unavailable;const meta=currentDivision.startsWith("15U")?(p.positionLabel||p.position):(p.type?`${p.type}${p.rating!==""?` · Rating ${p.rating}`:""}`:`Rating ${p.rating||"—"}`);return `<div class="player ${a?"assigned":unavailable?"unavailable":""}" draggable="${!disabled}" data-player="${esc(p.id)}" ${disabled?'aria-disabled="true"':""}><div class="number">${p.number?esc(p.number):p.position||"—"}</div><div class="player-info"><div class="player-name">${esc(p.name)}</div><div class="player-meta">${esc(meta||"Position not set")}</div></div>${a?`<span class="assigned-tag">Assigned</span>`:unavailable?`<span class="assigned-tag">${p.available===false?"Unavailable":"Availability not set"}</span>`:""}</div>`}).join(""):`<div class="empty">No players match this division or search.</div>`;
+ document.querySelectorAll(".player:not(.assigned):not(.unavailable)").forEach(el=>{
+  el.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/player",el.dataset.player);e.dataTransfer.effectAllowed="move"});
+  el.addEventListener("click",()=>{selectedPlayer=selectedPlayer===el.dataset.player?null:el.dataset.player;document.querySelectorAll(".player").forEach(x=>x.style.outline=x.dataset.player===selectedPlayer?"2px solid #d4b45d":"");if(selectedPlayer)setStatus("Player selected. Click an open position to assign them.")});
+ });
+}
+function render(){renderRoster();renderPlayers()}
+document.querySelectorAll(".division-tab").forEach(b=>b.addEventListener("click",()=>{currentDivision=b.dataset.division;selectedPlayer=null;render()}));
+document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{activeFilter=b.dataset.filter;document.querySelectorAll(".filter").forEach(x=>x.classList.toggle("active",x===b));renderPlayers()}));
+$("search").addEventListener("input",renderPlayers);
+$("printBtn").addEventListener("click",()=>window.print());
+$("refreshBtn").addEventListener("click",()=>loadSheet().then(()=>render()));
+$("resetBtn").addEventListener("click",()=>{if(confirm(`Clear all assignments for ${currentDivision}?`)){rosters[currentDivision]={};save();setStatus(`${currentDivision} roster cleared.`);render()}});
+$("addPlayerBtn").addEventListener("click",()=>$("addModal").classList.add("show"));
+$("cancelAdd").addEventListener("click",()=>$("addModal").classList.remove("show"));
+$("saveAdd").addEventListener("click",()=>{const name=$("newName").value.trim();if(!name){setStatus("Enter a player name.",true);return}const team=$("newTeam").value;const p={id:"manual-"+Date.now(),name,number:$("newNumber").value.trim(),position:$("newPosition").value,team,source:"manual"};players.push(p);$("newName").value="";$("newNumber").value="";$("addModal").classList.remove("show");save();render();setStatus(`${name} added to the player pool.`)});
+$("addModal").addEventListener("click",e=>{if(e.target===$("addModal"))$("addModal").classList.remove("show")});
+restore();loadSheet().then(()=>render());render();
+setInterval(()=>{if(document.visibilityState==="visible")loadSheet().then(()=>render())},60000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")loadSheet().then(()=>render())});
+})();
+</script>
+</body>
+</html>
