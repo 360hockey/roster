@@ -105,6 +105,34 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
 .slot .jersey{font-size:10px;color:#b0c0b4;margin-top:4px}
 @media(max-width:650px){#viewSelect{width:100%}}
 
+
+/* Two-page print layout: page 1 lineup/depth chart, page 2 all special teams. */
+#printPages{display:none}
+@page{size:letter portrait;margin:0.32in}
+@media print{
+ html,body{width:100%;height:auto;background:#fff!important;color:#111!important;margin:0!important;padding:0!important}
+ header,main>.topline,main>#status,main>.division-tabs,main>.workspace,main>footer{display:none!important}
+ main{display:block!important;max-width:none!important;margin:0!important;padding:0!important}
+ #printPages{display:block!important}
+ .print-page{display:block;width:100%;height:10.35in;overflow:hidden;page-break-after:always;break-after:page;color:#111;background:#fff}
+ .print-page:last-child{page-break-after:auto;break-after:auto}
+ .print-heading{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding:0 0 7px;margin:0 0 12px;font-size:15px;font-weight:800}
+ .print-heading strong{font-size:16px;letter-spacing:.06em}
+ .print-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .print-unit{border:1px solid #777;border-radius:5px;padding:6px;break-inside:avoid;min-width:0}
+ .print-unit h3{font-size:10px;line-height:1.1;text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px;color:#111}
+ .print-slots{display:grid;grid-template-columns:repeat(var(--slot-cols,3),minmax(0,1fr));gap:4px}
+ .print-slot{height:30px;min-width:0;border:1px solid #bbb;border-radius:3px;display:flex;align-items:center;gap:4px;padding:3px 4px;overflow:hidden}
+ .print-slot.filled{background:#f4f7f9;border-color:#9aa7b0}
+ .print-number{font-size:9px;font-weight:900;white-space:nowrap;flex:none}
+ .print-name{font-size:9px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:clip;min-width:0}
+ .print-special-section{margin-bottom:9px;break-inside:avoid}
+ .print-special-section h2{font-size:11px;line-height:1;margin:8px 0 5px;padding-bottom:3px;border-bottom:1px solid #aaa;text-transform:uppercase;letter-spacing:.06em}
+ .special-print-page .print-grid{gap:6px}
+ .special-print-page .print-unit{padding:5px}
+ .special-print-page .print-slot{height:27px}
+ .special-print-page .print-name{font-size:8.5px}
+}
 </style>
 </head>
 <body>
@@ -151,6 +179,7 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
       <div class="source-note">Ratings: blue 90–100, green 70–89, yellow 50–69, orange 30–49, red 0–29, purple N/A. Green players are available; grey players are unavailable or already assigned.</div>
     </aside>
   </div>
+  <section id="printPages" aria-hidden="true"></section>
   <footer>Rocky Mountain Moose Hockey Club · Roster Builder</footer>
 </main>
 <div class="modal-backdrop" id="addModal">
@@ -178,21 +207,22 @@ function makeGroup(label, prefix, count, kind="skater", columns=3){
   id:`${prefix}-${i+1}`,label:prefix,kind
  }))};
 }
-function viewGroups(){
- if(currentView==="lineup") return [
+function groupsForView(view){
+ if(view==="lineup") return [
   ...Array.from({length:4},(_,i)=>makeGroup(`Forward Line ${i+1}`,`F-${i+1}`,3,"skater",3)),
   ...Array.from({length:3},(_,i)=>makeGroup(`Defense Pair ${i+1}`,`D-${i+1}`,2,"skater",2)),
   makeGroup("Goaltenders","G",3,"goalie",3)
  ];
  const defs={
-  pp1:[["PP1",4],["PP2",4]],
-  pk1:[["PK1",4],["PK2",4]],
-  pk2:[["PK1",3],["PK2",3]],
-  ot:[["OT1",3],["OT2",3]],
-  eog:[["EOG1",6],["EOG2",6]]
+  pp1:[["PP1",4,"PP1"],["PP2",4,"PP2"]],
+  pk1:[["PK1",4,"PK1-1M"],["PK2",4,"PK2-1M"]],
+  pk2:[["PK1",3,"PK1-2M"],["PK2",3,"PK2-2M"]],
+  ot:[["OT1",3,"OT1"],["OT2",3,"OT2"]],
+  eog:[["EOG1",6,"EOG1"],["EOG2",6,"EOG2"]]
  };
- return defs[currentView].map(([label,count])=>makeGroup(label,label,count,"skater",Math.min(3,count)));
+ return (defs[view]||[]).map(([label,count,prefix])=>makeGroup(label,prefix,count,"skater",Math.min(3,count)));
 }
+function viewGroups(){return groupsForView(currentView)}
 function currentSlotKind(slotId){
  for(const group of viewGroups()) for(const slot of group.slots) if(slot.id===slotId)return slot.kind;
  return "skater";
@@ -276,7 +306,16 @@ async function loadSheet(){
 }
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({players:players.filter(p=>p.source==="manual"),rosters}))}catch(e){}}
 function restore(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");if(data.rosters)rosters={...rosters,...data.rosters};if(data.players)players.push(...data.players)}catch(e){}}
-function assignedMap(){const map={};for(const d of DIVISIONS)for(const [slot,id] of Object.entries(rosters[d]||{}))if(id)map[id]={division:d,slot};return map}
+function assignedMap(){
+ const map={};
+ const visibleSlots=new Set(viewGroups().flatMap(g=>g.slots.map(slot=>slot.id)));
+ for(const d of DIVISIONS)for(const [slot,id] of Object.entries(rosters[d]||{})){
+  if(!id)continue;
+  if(d===currentDivision&&!visibleSlots.has(slot))continue;
+  map[id]={division:d,slot};
+ }
+ return map;
+}
 function getPlayer(id){return players.find(p=>p.id===id)}
 function slotLabel(id){const [type,line,num]=id.split("-");return type==="F"?`Forward ${num}`:type==="D"?`Defense ${num}`:"Goalie"}
 function ratingClass(p){
@@ -352,12 +391,44 @@ function renderPlayers(){
   el.addEventListener("click",()=>{selectedPlayer=selectedPlayer===el.dataset.player?null:el.dataset.player;document.querySelectorAll(".player").forEach(x=>x.style.outline=x.dataset.player===selectedPlayer?"2px solid #d4b45d":"");if(selectedPlayer)setStatus("Player selected. Click an open position to assign them.")});
  });
 }
+function printSlot(slot){
+ const playerId=rosters[currentDivision]?.[slot.id],p=playerId&&getPlayer(playerId);
+ if(!p)return `<div class="print-slot"></div>`;
+ return `<div class="print-slot filled"><span class="print-number">${p.number?`#${esc(p.number)}`:""}</span><span class="print-name">${esc(p.name)}</span></div>`;
+}
+function printGroup(group){
+ return `<section class="print-unit"><h3>${esc(group.label)}</h3><div class="print-slots" style="--slot-cols:${group.columns}">${group.slots.map(printSlot).join("")}</div></section>`;
+}
+function renderPrintPages(){
+ const lineup=groupsForView("lineup");
+ const specialViews=[
+  ["Power Play", "pp1"],["Penalty Kill (1 man)", "pk1"],
+  ["Penalty Kill (2 man)", "pk2"],["Overtime", "ot"],["End of Game", "eog"]
+ ];
+ $("printPages").innerHTML=`
+  <article class="print-page">
+   <div class="print-heading"><strong>ROCKY MOUNTAIN MOOSE</strong><span>${esc(currentDivision)} · Lineup / Depth Chart</span></div>
+   <div class="print-grid">${lineup.map(printGroup).join("")}</div>
+  </article>
+  <article class="print-page special-print-page">
+   <div class="print-heading"><strong>ROCKY MOUNTAIN MOOSE</strong><span>${esc(currentDivision)} · Special Teams</span></div>
+   ${specialViews.map(([heading,view])=>`<section class="print-special-section"><h2>${esc(heading)}</h2><div class="print-grid">${groupsForView(view).map(printGroup).join("")}</div></section>`).join("")}
+  </article>`;
+}
 function render(){renderRoster();renderPlayers()}
 document.querySelectorAll(".division-tab").forEach(b=>b.addEventListener("click",()=>{currentDivision=b.dataset.division;selectedPlayer=null;render()}));
- $("viewSelect").addEventListener("change",()=>{currentView=$("viewSelect").value;selectedPlayer=null;setStatus("");render()});
+ $("viewSelect").addEventListener("change",()=>{
+  currentView=$("viewSelect").value;
+  selectedPlayer=null;
+  $("search").value="";
+  activeFilter="all";
+  document.querySelectorAll(".filter").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));
+  setStatus("");
+  render();
+ });
 document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{activeFilter=b.dataset.filter;document.querySelectorAll(".filter").forEach(x=>x.classList.toggle("active",x===b));renderPlayers()}));
 $("search").addEventListener("input",renderPlayers);
-$("printBtn").addEventListener("click",()=>window.print());
+$("printBtn").addEventListener("click",()=>{renderPrintPages();window.print()});
 $("refreshBtn").addEventListener("click",()=>loadSheet().then(()=>render()));
 $("resetBtn").addEventListener("click",()=>{if(confirm(`Clear all assignments for ${currentDivision}?`)){rosters[currentDivision]={};save();setStatus(`${currentDivision} roster cleared.`);render()}});
 $("addPlayerBtn").addEventListener("click",()=>$("addModal").classList.add("show"));
