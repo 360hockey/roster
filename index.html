@@ -77,6 +77,34 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
 .player.rating-purple:not(.assigned):not(.unavailable){background:#39264f;border-color:#9b70c8}
 .player.rating-purple:not(.assigned):not(.unavailable) .number{background:#9b70c8;color:#160d20}
 
+
+/* Rating scale and roster view selector */
+#viewSelect{min-width:min(260px,100%);padding:9px 34px 9px 11px;border:1px solid var(--line);border-radius:8px;background:#18232d;color:var(--text);font:inherit;font-size:13px;font-weight:800}
+.slot.rating-blue{border-color:#4b91cf;background:linear-gradient(145deg,#244d6b,#142331)}
+.slot.rating-green{border-color:#4d9b59;background:linear-gradient(145deg,#24452a,#17261b)}
+.slot.rating-yellow{border-color:#c9aa35;background:linear-gradient(145deg,#51451c,#282313)}
+.slot.rating-orange{border-color:#d47b35;background:linear-gradient(145deg,#57331b,#2b1c13)}
+.slot.rating-red{border-color:#b84b4b;background:linear-gradient(145deg,#512323,#291516)}
+.slot.rating-purple{border-color:#9b70c8;background:linear-gradient(145deg,#39264f,#21172d)}
+/* Pool status communicates availability, independently of player rating. */
+.player:not(.assigned):not(.unavailable){background:#1e4228;border-color:#4d9b59;color:#f7fbff}
+.player:not(.assigned):not(.unavailable) .number{background:#4d9b59;color:#07130a}
+.player.rating-blue:not(.assigned):not(.unavailable),
+.player.rating-green:not(.assigned):not(.unavailable),
+.player.rating-yellow:not(.assigned):not(.unavailable),
+.player.rating-orange:not(.assigned):not(.unavailable),
+.player.rating-red:not(.assigned):not(.unavailable),
+.player.rating-purple:not(.assigned):not(.unavailable){background:#1e4228;border-color:#4d9b59}
+.player.rating-blue:not(.assigned):not(.unavailable) .number,
+.player.rating-green:not(.assigned):not(.unavailable) .number,
+.player.rating-yellow:not(.assigned):not(.unavailable) .number,
+.player.rating-orange:not(.assigned):not(.unavailable) .number,
+.player.rating-red:not(.assigned):not(.unavailable) .number,
+.player.rating-purple:not(.assigned):not(.unavailable) .number{background:#4d9b59;color:#07130a}
+.slot .pos{font-size:12px;color:#dceaf5;letter-spacing:.04em}
+.slot .jersey{font-size:10px;color:#b0c0b4;margin-top:4px}
+@media(max-width:650px){#viewSelect{width:100%}}
+
 </style>
 </head>
 <body>
@@ -101,7 +129,14 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
   </nav>
   <div class="workspace">
     <section class="roster-panel">
-      <div class="panel-head"><h3>Lineup / Depth Chart</h3><span class="counter" id="divisionCount">0 players assigned</span></div>
+      <div class="panel-head"><select id="viewSelect" aria-label="Roster view">
+          <option value="lineup">Lineup / Depth Chart</option>
+          <option value="pp1">Power Play (1 man)</option>
+          <option value="pk1">Penalty Kill (1 man)</option>
+          <option value="pk2">Penalty Kill (2 man)</option>
+          <option value="ot">Overtime</option>
+          <option value="eog">End of Game</option>
+        </select><span class="counter" id="divisionCount">0 players assigned</span></div>
       <div class="lines-grid" id="forwardLines"></div>
       <div class="lines-grid" id="defenseLines"></div>
       <div class="unit"><div class="unit-title"><span>Goaltenders</span><span>3 slots</span></div><div class="goalies" id="goalieSlots"></div></div>
@@ -113,7 +148,7 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
         <button class="filter active" data-filter="all">All</button><button class="filter" data-filter="F">Forwards</button><button class="filter" data-filter="D">Defense</button><button class="filter" data-filter="G">Goalies</button>
       </div>
       <div class="player-list" id="playerList"><div class="empty">Loading players from the published Test tab…</div></div>
-      <div class="source-note">Blue = rating above 90; green = rating above 70; purple = N/A rating. Grey = unavailable or already assigned. Goalies can only fill goalie slots; forwards and defensemen can fill either skater position.</div>
+      <div class="source-note">Ratings: blue 90–100, green 70–89, yellow 50–69, orange 30–49, red 0–29, purple N/A. Green players are available; grey players are unavailable or already assigned.</div>
     </aside>
   </div>
   <footer>Rocky Mountain Moose Hockey Club · Roster Builder</footer>
@@ -137,6 +172,31 @@ const slotIds = [
 ];
 let players = [], rosters = Object.fromEntries(DIVISIONS.map(d=>[d,{}]));
 let currentDivision = DIVISIONS[0], selectedPlayer = null, activeFilter = "all";
+let currentView = "lineup";
+function makeGroup(label, prefix, count, kind="skater", columns=3){
+ return {label,prefix,count,kind,columns,slots:Array.from({length:count},(_,i)=>({
+  id:`${prefix}-${i+1}`,label:prefix,kind
+ }))};
+}
+function viewGroups(){
+ if(currentView==="lineup") return [
+  ...Array.from({length:4},(_,i)=>makeGroup(`Forward Line ${i+1}`,`F-${i+1}`,3,"skater",3)),
+  ...Array.from({length:3},(_,i)=>makeGroup(`Defense Pair ${i+1}`,`D-${i+1}`,2,"skater",2)),
+  makeGroup("Goaltenders","G",3,"goalie",3)
+ ];
+ const defs={
+  pp1:[["PP1",4],["PP2",4]],
+  pk1:[["PK1",4],["PK2",4]],
+  pk2:[["PK1",3],["PK2",3]],
+  ot:[["OT1",3],["OT2",3]],
+  eog:[["EOG1",6],["EOG2",6]]
+ };
+ return defs[currentView].map(([label,count])=>makeGroup(label,label,count,"skater",Math.min(3,count)));
+}
+function currentSlotKind(slotId){
+ for(const group of viewGroups()) for(const slot of group.slots) if(slot.id===slotId)return slot.kind;
+ return "skater";
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function setStatus(msg, error=false){$("status").textContent=msg||"";$("status").classList.toggle("error",!!error)}
@@ -226,19 +286,37 @@ function ratingClass(p){
  if(raw==="")return "";
  const value=Number(raw);
  if(!Number.isFinite(value))return "rating-purple";
- if(value>90)return "rating-blue";
- if(value>70)return "rating-green";
- return "rating-low";
+ if(value>=90)return "rating-blue";
+ if(value>=70)return "rating-green";
+ if(value>=50)return "rating-yellow";
+ if(value>=30)return "rating-orange";
+ return "rating-red";
 }
-function makeSlot(id){const assignedId=rosters[currentDivision][id],p=assignedId&&getPlayer(assignedId);const is15=currentDivision.startsWith("15U");const detail=p?(is15?(p.positionLabel||p.position):p.type):"";return `<div class="slot ${p?"filled "+ratingClass(p):""}" data-slot="${id}" tabindex="0" aria-label="${esc(id)} ${p?esc(p.name):"empty"}">${p?`<button class="remove" data-remove="${esc(id)}" title="Remove player" aria-label="Remove ${esc(p.name)}">×</button><div class="pos">${id.startsWith("F")?"F":id.startsWith("D")?"D":"G"}</div><div class="name">${esc(p.name)}</div><div class="jersey">${p.number?`#${esc(p.number)} · `:""}${esc(detail)}</div>${!is15&&p.rating!==""?`<div class="rating">Rating: ${esc(p.rating)}</div>`:""}`:`<div class="pos">${id.startsWith("F")?"Forward":id.startsWith("D")?"Defense":"Goalie"}</div><div class="name">Drop player here</div><div class="jersey">${esc(id.split("-").slice(1).join(" · "))}</div>`}</div>`}
+function makeSlot(slot){
+ const id=typeof slot==="string"?slot:slot.id;
+ const assignedId=rosters[currentDivision][id],p=assignedId&&getPlayer(assignedId);
+ const is15=currentDivision.startsWith("15U");
+ const detail=p?(is15?(p.positionLabel||p.position):p.type):"";
+ const kind=typeof slot==="string"?(id.startsWith("G-")?"goalie":"skater"):slot.kind;
+ const emptyLabel=kind==="goalie"?"Goalie":"Player";
+ return `<div class="slot ${p?"filled "+ratingClass(p):""}" data-slot="${esc(id)}" tabindex="0" aria-label="${esc(id)} ${p?esc(p.name):"empty"}">${p?`<button class="remove" data-remove="${esc(id)}" title="Remove player" aria-label="Remove ${esc(p.name)}">×</button><div class="pos">${p.number?`#${esc(p.number)}`:""}</div><div class="name">${esc(p.name)}</div><div class="jersey">${esc(detail)}</div>${!is15&&p.rating!==""?`<div class="rating">Rating: ${esc(p.rating)}</div>`:""}`:`<div class="pos">${emptyLabel}</div><div class="name">Drop player here</div>`}</div>`;
+}
 function renderRoster(){
  $("divisionHeading").textContent=currentDivision+" Roster";
  document.querySelectorAll(".division-tab").forEach(b=>b.classList.toggle("active",b.dataset.division===currentDivision));
- $("forwardLines").innerHTML=Array.from({length:4},(_,i)=>`<div class="unit"><div class="unit-title"><span>Forward Line ${i+1}</span><span>3 forwards</span></div><div class="slots">${[1,2,3].map(n=>makeSlot(`F-${i+1}-${n}`)).join("")}</div></div>`).join("");
- $("defenseLines").innerHTML=Array.from({length:3},(_,i)=>`<div class="unit"><div class="unit-title"><span>Defense Pair ${i+1}</span><span>2 defense</span></div><div class="slots defense">${[1,2].map(n=>makeSlot(`D-${i+1}-${n}`)).join("")}</div></div>`).join("");
- $("goalieSlots").innerHTML=[1,2,3].map(n=>makeSlot(`G-${n}`)).join("");
- const count=Object.values(rosters[currentDivision]).filter(Boolean).length;
- $("filledSummary").textContent=`${count} / 21 POSITIONS FILLED`;$("divisionCount").textContent=`${count} players assigned`;
+ const groups=viewGroups();
+ const forward=groups.filter(g=>g.prefix.startsWith("F-"));
+ const defense=groups.filter(g=>g.prefix.startsWith("D-"));
+ const goalies=groups.filter(g=>g.kind==="goalie");
+ const special=groups.filter(g=>!g.prefix.startsWith("F-")&&!g.prefix.startsWith("D-")&&g.kind!=="goalie");
+ const renderGroup=g=>`<div class="unit"><div class="unit-title"><span>${esc(g.label)}</span><span>${g.count} ${g.kind==="goalie"?"goalie":g.kind==="skater"?"players":"slots"}</span></div><div class="slots ${g.columns===2?"defense":""}" style="grid-template-columns:repeat(${g.columns},minmax(0,1fr))">${g.slots.map(makeSlot).join("")}</div></div>`;
+ $("forwardLines").innerHTML=forward.map(renderGroup).join("");
+ $("defenseLines").innerHTML=[...defense,...special].map(renderGroup).join("");
+ $("goalieSlots").innerHTML=goalies.map(g=>g.slots.map(makeSlot).join("")).join("");
+ $("goalieSlots").parentElement.style.display=goalies.length?"":"none";
+ const slotIds=groups.flatMap(g=>g.slots.map(slot=>slot.id));
+ const count=slotIds.filter(id=>rosters[currentDivision][id]).length;
+ $("filledSummary").textContent=`${count} / ${slotIds.length} POSITIONS FILLED`;$("divisionCount").textContent=`${count} players assigned`;
  document.querySelectorAll(".slot").forEach(el=>{
   el.addEventListener("dragover",e=>{e.preventDefault();el.classList.add("dragover")});
   el.addEventListener("dragleave",()=>el.classList.remove("dragover"));
@@ -253,9 +331,9 @@ function assign(playerId,slotId){
  if(player.available!==true){setStatus(`${player.name} is not explicitly marked available in the Google Sheet. Check the Available checkbox.`,true);return}
  const existing=assignedMap()[playerId];if(existing){setStatus(`${player.name} is already assigned to ${existing.division}. Remove them there before moving them.`,true);return}
  const current=rosters[currentDivision][slotId];if(current){setStatus("That position is already filled. Remove the current player first.",true);return}
- const type=slotId[0];
- if(type==="G"&&player.position!=="G") {setStatus(`${player.name} is not listed as a goalie. Goalies can only be assigned to goalie slots.`,true);return}
- if(type!=="G"&&player.position==="G") {setStatus(`${player.name} is a goalie and can only be assigned to a goalie slot.`,true);return}
+ const kind=currentSlotKind(slotId);
+ if(kind==="goalie"&&player.position!=="G") {setStatus(`${player.name} is not listed as a goalie. Goalies can only be assigned to goalie slots.`,true);return}
+ if(kind!=="goalie"&&player.position==="G") {setStatus(`${player.name} is a goalie and can only be assigned to goalie slots.`,true);return}
  rosters[currentDivision][slotId]=playerId;selectedPlayer=null;setStatus(`${player.name} added to ${currentDivision}.`);save();render();
 }
 function renderPlayers(){
@@ -276,6 +354,7 @@ function renderPlayers(){
 }
 function render(){renderRoster();renderPlayers()}
 document.querySelectorAll(".division-tab").forEach(b=>b.addEventListener("click",()=>{currentDivision=b.dataset.division;selectedPlayer=null;render()}));
+ $("viewSelect").addEventListener("change",()=>{currentView=$("viewSelect").value;selectedPlayer=null;setStatus("");render()});
 document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{activeFilter=b.dataset.filter;document.querySelectorAll(".filter").forEach(x=>x.classList.toggle("active",x===b));renderPlayers()}));
 $("search").addEventListener("input",renderPlayers);
 $("printBtn").addEventListener("click",()=>window.print());
