@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#6EB0E2">
-<title>Rocky Mountain Moose Hockey | Roster Builder</title>
+<title>Rocky Mountain Moose | Roster Builder</title>
 <style>
 :root{--bg:#080b0f;--panel:#111820;--panel2:#18232d;--line:#34495a;--text:#f7fbff;--muted:#a9bac8;--green:#6EB0E2;--green2:#203e55;--gold:#e7bd63;--red:#d97878;--blue:#6EB0E2}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#24445d 0,#111820 45%,#080b0f 100%);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:100vh}
@@ -63,6 +63,20 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
 .modal{background:#111b24;border-color:#40586b}.modal input{background:#080e14;border-color:#40586b}
 .empty{border-color:#40586b;color:#a9bac8}
 @media print{body{background:#fff;color:#111}.slot.filled{background:#e8f3fa;border-color:#6EB0E2}.unit-title,.slot .pos,.slot .name,.slot .jersey{color:#111}}
+/* Player rating colors: >90 blue, >70 green, <=70 red, N/A purple. */
+.slot.rating-blue{border-color:#6EB0E2;background:linear-gradient(145deg,#244d6b,#142331)}
+.slot.rating-green{border-color:#4d9b59;background:linear-gradient(145deg,#24452a,#17261b)}
+.slot.rating-low{border-color:#a95757;background:linear-gradient(145deg,#432323,#241718)}
+.slot.rating-purple{border-color:#9b70c8;background:linear-gradient(145deg,#39264f,#21172d)}
+.player.rating-blue:not(.assigned):not(.unavailable){background:#173f5c;border-color:#6EB0E2}
+.player.rating-blue:not(.assigned):not(.unavailable) .number{background:#6EB0E2;color:#07111a}
+.player.rating-green:not(.assigned):not(.unavailable){background:#1e4228;border-color:#4d9b59}
+.player.rating-green:not(.assigned):not(.unavailable) .number{background:#4d9b59;color:#07130a}
+.player.rating-low:not(.assigned):not(.unavailable){background:#432323;border-color:#a95757}
+.player.rating-low:not(.assigned):not(.unavailable) .number{background:#a95757;color:#fff}
+.player.rating-purple:not(.assigned):not(.unavailable){background:#39264f;border-color:#9b70c8}
+.player.rating-purple:not(.assigned):not(.unavailable) .number{background:#9b70c8;color:#160d20}
+
 </style>
 </head>
 <body>
@@ -99,7 +113,7 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
         <button class="filter active" data-filter="all">All</button><button class="filter" data-filter="F">Forwards</button><button class="filter" data-filter="D">Defense</button><button class="filter" data-filter="G">Goalies</button>
       </div>
       <div class="player-list" id="playerList"><div class="empty">Loading players from the published Test tab…</div></div>
-      <div class="source-note">Blue = explicitly marked available in the Google Sheet. Grey = unavailable, availability not set, or already assigned to a roster. Players assigned to another division remain unavailable while building this club's rosters.</div>
+      <div class="source-note">Blue = rating above 90; green = rating above 70; purple = N/A rating. Grey = unavailable or already assigned. Goalies can only fill goalie slots; forwards and defensemen can fill either skater position.</div>
     </aside>
   </div>
   <footer>Rocky Mountain Moose Hockey Club · Roster Builder</footer>
@@ -193,11 +207,8 @@ async function loadSheet(){
   if(!converted.length)throw new Error("No players found in the expected roster columns A:U.");
   const manual=players.filter(p=>p.source==="manual");
   players=uniquePlayers([...converted,...manual]);
-  const counts=DIVISIONS.map(d=>{
-   const team=converted.filter(p=>p.team===d);
-   return `${d}: ${team.length} total, ${team.filter(p=>p.available===true).length} available, ${team.filter(p=>p.available===false).length} unavailable, ${team.filter(p=>p.available===null).length} blank/unknown`;
-  }).join(" · ");
-  setStatus(`Loaded ${converted.length} players from “${SHEET_NAME}” only (gid ${SHEET_GID}). ${counts}.`);
+  // Successful refreshes are silent; only actual load errors appear in the status area.
+  setStatus("");
  }catch(e){
   players=players.filter(p=>p.source==="manual");
   setStatus(`Could not load “${SHEET_NAME}” (gid ${SHEET_GID}): ${e?.message||"connection error"}. No other worksheet was loaded.`,true);
@@ -208,8 +219,18 @@ function restore(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||
 function assignedMap(){const map={};for(const d of DIVISIONS)for(const [slot,id] of Object.entries(rosters[d]||{}))if(id)map[id]={division:d,slot};return map}
 function getPlayer(id){return players.find(p=>p.id===id)}
 function slotLabel(id){const [type,line,num]=id.split("-");return type==="F"?`Forward ${num}`:type==="D"?`Defense ${num}`:"Goalie"}
-function ratingClass(p){if(!p||!p.rating||!Number.isFinite(Number(p.rating)))return "";const peers=players.filter(x=>x.team===currentDivision&&x.rating!==""&&Number.isFinite(Number(x.rating))).map(x=>Number(x.rating));if(peers.length<2)return "rating-mid";const min=Math.min(...peers),max=Math.max(...peers),v=Number(p.rating);if(max===min)return "rating-mid";const pct=(v-min)/(max-min);return pct>=.67?"rating-high":pct<=.33?"rating-low":"rating-mid"}
-function makeSlot(id){const assignedId=rosters[currentDivision][id],p=assignedId&&getPlayer(assignedId);const is15=currentDivision.startsWith("15U");const detail=p?(is15?(p.positionLabel||p.position):p.type):"";return `<div class="slot ${p?"filled "+ratingClass(p):""}" data-slot="${id}" tabindex="0" aria-label="${esc(id)} ${p?esc(p.name):"empty"}">${p?`<button class="remove" data-remove="${esc(id)}" title="Remove player" aria-label="Remove ${esc(p.name)}">×</button><div class="pos">${id.startsWith("F")?"F":id.startsWith("D")?"D":"G"} · ${id.split("-").slice(1).join(".")}</div><div class="name">${esc(p.name)}</div><div class="jersey">${p.number?`#${esc(p.number)} · `:""}${esc(detail)}</div>${!is15&&p.rating!==""?`<div class="rating">Rating: ${esc(p.rating)}</div>`:""}`:`<div class="pos">${id.startsWith("F")?"Forward":id.startsWith("D")?"Defense":"Goalie"}</div><div class="name">Drop player here</div><div class="jersey">${esc(id.split("-").slice(1).join(" · "))}</div>`}</div>`}
+function ratingClass(p){
+ if(!p)return "";
+ const raw=String(p.rating??"").trim().toLowerCase();
+ if(raw==="n/a"||raw==="na")return "rating-purple";
+ if(raw==="")return "";
+ const value=Number(raw);
+ if(!Number.isFinite(value))return "rating-purple";
+ if(value>90)return "rating-blue";
+ if(value>70)return "rating-green";
+ return "rating-low";
+}
+function makeSlot(id){const assignedId=rosters[currentDivision][id],p=assignedId&&getPlayer(assignedId);const is15=currentDivision.startsWith("15U");const detail=p?(is15?(p.positionLabel||p.position):p.type):"";return `<div class="slot ${p?"filled "+ratingClass(p):""}" data-slot="${id}" tabindex="0" aria-label="${esc(id)} ${p?esc(p.name):"empty"}">${p?`<button class="remove" data-remove="${esc(id)}" title="Remove player" aria-label="Remove ${esc(p.name)}">×</button><div class="pos">${id.startsWith("F")?"F":id.startsWith("D")?"D":"G"}</div><div class="name">${esc(p.name)}</div><div class="jersey">${p.number?`#${esc(p.number)} · `:""}${esc(detail)}</div>${!is15&&p.rating!==""?`<div class="rating">Rating: ${esc(p.rating)}</div>`:""}`:`<div class="pos">${id.startsWith("F")?"Forward":id.startsWith("D")?"Defense":"Goalie"}</div><div class="name">Drop player here</div><div class="jersey">${esc(id.split("-").slice(1).join(" · "))}</div>`}</div>`}
 function renderRoster(){
  $("divisionHeading").textContent=currentDivision+" Roster";
  document.querySelectorAll(".division-tab").forEach(b=>b.classList.toggle("active",b.dataset.division===currentDivision));
@@ -230,10 +251,11 @@ function renderRoster(){
 function assign(playerId,slotId){
  const player=getPlayer(playerId);if(!player)return;
  if(player.available!==true){setStatus(`${player.name} is not explicitly marked available in the Google Sheet. Check the Available checkbox.`,true);return}
- if(!player.position){setStatus(`${player.name} does not have a recognizable Position/Type value in the sheet.`,true);return}
  const existing=assignedMap()[playerId];if(existing){setStatus(`${player.name} is already assigned to ${existing.division}. Remove them there before moving them.`,true);return}
  const current=rosters[currentDivision][slotId];if(current){setStatus("That position is already filled. Remove the current player first.",true);return}
- const type=slotId[0];if(player.position!==type){setStatus(`${player.name} is listed as ${player.position==="F"?"a forward":player.position==="D"?"a defenseman":"a goalie"}. Choose a matching position.`,true);return}
+ const type=slotId[0];
+ if(type==="G"&&player.position!=="G") {setStatus(`${player.name} is not listed as a goalie. Goalies can only be assigned to goalie slots.`,true);return}
+ if(type!=="G"&&player.position==="G") {setStatus(`${player.name} is a goalie and can only be assigned to a goalie slot.`,true);return}
  rosters[currentDivision][slotId]=playerId;selectedPlayer=null;setStatus(`${player.name} added to ${currentDivision}.`);save();render();
 }
 function renderPlayers(){
@@ -246,7 +268,7 @@ function renderPlayers(){
  }).sort((a,b)=>a.name.localeCompare(b.name));
  const available=pool.filter(p=>p.available===true&&!map[p.id]).length;
  $("availableCount").textContent=`${available} AVAILABLE`;
- $("playerList").innerHTML=pool.length?pool.map(p=>{const a=map[p.id],unavailable=p.available!==true,disabled=!!a||unavailable;const meta=currentDivision.startsWith("15U")?(p.positionLabel||p.position):(p.type?`${p.type}${p.rating!==""?` · Rating ${p.rating}`:""}`:`Rating ${p.rating||"—"}`);return `<div class="player ${a?"assigned":unavailable?"unavailable":""}" draggable="${!disabled}" data-player="${esc(p.id)}" ${disabled?'aria-disabled="true"':""}><div class="number">${p.number?esc(p.number):p.position||"—"}</div><div class="player-info"><div class="player-name">${esc(p.name)}</div><div class="player-meta">${esc(meta||"Position not set")}</div></div>${a?`<span class="assigned-tag">Assigned</span>`:unavailable?`<span class="assigned-tag">${p.available===false?"Unavailable":"Availability not set"}</span>`:""}</div>`}).join(""):`<div class="empty">No players match this division or search.</div>`;
+ $("playerList").innerHTML=pool.length?pool.map(p=>{const a=map[p.id],unavailable=p.available!==true,disabled=!!a||unavailable;const meta=currentDivision.startsWith("15U")?(p.positionLabel||p.position):(p.type?`${p.type}${p.rating!==""?` · Rating ${p.rating}`:""}`:`Rating ${p.rating||"—"}`);return `<div class="player ${a?"assigned":unavailable?"unavailable":""} ${ratingClass(p)}" draggable="${!disabled}" data-player="${esc(p.id)}" ${disabled?'aria-disabled="true"':""}><div class="number">${p.number?esc(p.number):p.position||"—"}</div><div class="player-info"><div class="player-name">${esc(p.name)}</div><div class="player-meta">${esc(meta||"Position not set")}</div></div>${a?`<span class="assigned-tag">Assigned</span>`:unavailable?`<span class="assigned-tag">${p.available===false?"Unavailable":"Availability not set"}</span>`:""}</div>`}).join(""):`<div class="empty">No players match this division or search.</div>`;
  document.querySelectorAll(".player:not(.assigned):not(.unavailable)").forEach(el=>{
   el.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/player",el.dataset.player);e.dataTransfer.effectAllowed="move"});
   el.addEventListener("click",()=>{selectedPlayer=selectedPlayer===el.dataset.player?null:el.dataset.player;document.querySelectorAll(".player").forEach(x=>x.style.outline=x.dataset.player===selectedPlayer?"2px solid #d4b45d":"");if(selectedPlayer)setStatus("Player selected. Click an open position to assign them.")});
