@@ -415,6 +415,10 @@ function printPlayerCard(slotId){
 function printPositionColumn(label, slotIds){
  return `<section class="print-position"><h3>${esc(label)}</h3><div class="print-card-list">${slotIds.map(printPlayerCard).join("")}</div></section>`;
 }
+function printGroup(group){
+ const columns=Math.min(group.columns||3,group.slots.length||1);
+ return `<section class="print-unit"><h3>${esc(group.label)}</h3><div class="print-slots" style="--slot-cols:${columns}">${group.slots.map(printSlot).join("")}</div></section>`;
+}
 function renderPrintPages(){
  const specialViews=[
   ["Power Play", "pp1"],["Penalty Kill", "pk1"],
@@ -450,7 +454,7 @@ document.querySelectorAll(".division-tab").forEach(b=>b.addEventListener("click"
  });
 document.querySelectorAll(".filter").forEach(b=>b.addEventListener("click",()=>{activeFilter=b.dataset.filter;document.querySelectorAll(".filter").forEach(x=>x.classList.toggle("active",x===b));renderPlayers()}));
 $("search").addEventListener("input",renderPlayers);
-$("printBtn").addEventListener("click",()=>{renderPrintPages();window.print()});
+$("printBtn").addEventListener("click",()=>{try{renderPrintPages();window.print()}catch(error){console.error("Print layout failed:",error);setStatus("Unable to prepare the print layout. Please refresh the page and try again.",true)}});
 $("refreshBtn").addEventListener("click",()=>loadSheet().then(()=>render()));
 $("resetBtn").addEventListener("click",()=>{if(confirm(`Clear all assignments for ${currentDivision}?`)){rosters[currentDivision]={};save();setStatus(`${currentDivision} roster cleared.`);render()}});
 $("addPlayerBtn").addEventListener("click",()=>$("addModal").classList.add("show"));
