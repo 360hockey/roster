@@ -159,7 +159,7 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
     <section class="roster-panel">
       <div class="panel-head"><select id="viewSelect" aria-label="Roster view">
           <option value="lineup">Lineup / Depth Chart</option>
-          <option value="pp1">Power Play (1 man)</option>
+          <option value="pp1">Power Play</option>
           <option value="pk1">Penalty Kill (1 man)</option>
           <option value="pk2">Penalty Kill (2 man)</option>
           <option value="ot">Overtime</option>
@@ -214,7 +214,7 @@ function groupsForView(view){
   makeGroup("Goaltenders","G",3,"goalie",3)
  ];
  const defs={
-  pp1:[["PP1",4,"PP1"],["PP2",4,"PP2"]],
+  pp1:[["PP1",5,"PP1"],["PP2",5,"PP2"]],
   pk1:[["PK1",4,"PK1-1M"],["PK2",4,"PK2-1M"]],
   pk2:[["PK1",3,"PK1-2M"],["PK2",3,"PK2-2M"]],
   ot:[["OT1",3,"OT1"],["OT2",3,"OT2"]],
