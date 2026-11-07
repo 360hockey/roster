@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,20 +119,30 @@ button.primary,.division-tab.active{background:#6EB0E2;border-color:#6EB0E2;colo
  .print-page:last-child{page-break-after:auto;break-after:auto}
  .print-heading{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding:0 0 7px;margin:0 0 12px;font-size:15px;font-weight:800}
  .print-heading strong{font-size:16px;letter-spacing:.06em}
- .print-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
- .print-unit{border:1px solid #777;border-radius:5px;padding:6px;break-inside:avoid;min-width:0}
- .print-unit h3{font-size:10px;line-height:1.1;text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px;color:#111}
- .print-slots{display:grid;grid-template-columns:repeat(var(--slot-cols,3),minmax(0,1fr));gap:4px}
- .print-slot{height:30px;min-width:0;border:1px solid #bbb;border-radius:3px;display:flex;align-items:center;gap:4px;padding:3px 4px;overflow:hidden}
+ .print-lineup-section{margin-bottom:10px;break-inside:avoid}
+ .print-lineup-section h2{font-size:12px;line-height:1;margin:8px 0 6px;padding-bottom:4px;border-bottom:2px solid #222;text-transform:uppercase;letter-spacing:.07em}
+ .print-position-grid{display:grid;grid-template-columns:repeat(var(--pos-cols,3),minmax(0,1fr));gap:8px}
+ .print-position h3{font-size:10px;line-height:1.1;text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px;color:#333}
+ .print-card-list{display:grid;gap:4px}
+ .print-player-card{height:43px;min-width:0;border:1px solid #9aa7b0;border-radius:4px;background:#f4f7f9;display:flex;align-items:center;gap:8px;padding:4px 7px;overflow:hidden}
+ .print-player-card.empty{background:#fff;border-style:dashed;border-color:#ccc}
+ .print-number{font-size:23px;line-height:1;font-weight:900;white-space:nowrap;flex:none;min-width:32px;text-align:center;color:#111}
+ .print-name{font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:clip;min-width:0;color:#111}
+ .print-special-section{margin-bottom:8px;break-inside:avoid}
+ .print-special-section h2{font-size:11px;line-height:1;margin:7px 0 4px;padding-bottom:3px;border-bottom:1px solid #aaa;text-transform:uppercase;letter-spacing:.06em}
+ .print-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .print-unit{border:1px solid #777;border-radius:5px;padding:5px;break-inside:avoid;min-width:0}
+ .print-unit h3{font-size:9px;line-height:1.1;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px;color:#111}
+ .print-slots{display:grid;grid-template-columns:repeat(var(--slot-cols,3),minmax(0,1fr));gap:3px}
+ .print-slot{height:34px;min-width:0;border:1px solid #bbb;border-radius:3px;display:flex;align-items:center;gap:4px;padding:3px 4px;overflow:hidden}
  .print-slot.filled{background:#f4f7f9;border-color:#9aa7b0}
- .print-number{font-size:9px;font-weight:900;white-space:nowrap;flex:none}
- .print-name{font-size:9px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:clip;min-width:0}
- .print-special-section{margin-bottom:9px;break-inside:avoid}
- .print-special-section h2{font-size:11px;line-height:1;margin:8px 0 5px;padding-bottom:3px;border-bottom:1px solid #aaa;text-transform:uppercase;letter-spacing:.06em}
- .special-print-page .print-grid{gap:6px}
- .special-print-page .print-unit{padding:5px}
- .special-print-page .print-slot{height:27px}
- .special-print-page .print-name{font-size:8.5px}
+ .print-slot .print-number{font-size:17px;min-width:23px}
+ .print-slot .print-name{font-size:8px}
+ .special-print-page .print-grid{gap:5px}
+ .special-print-page .print-unit{padding:4px}
+ .special-print-page .print-slot{height:30px}
+ .special-print-page .print-slot .print-number{font-size:15px}
+ .special-print-page .print-slot .print-name{font-size:7.5px}
 }
 </style>
 </head>
@@ -396,19 +407,30 @@ function printSlot(slot){
  if(!p)return `<div class="print-slot"></div>`;
  return `<div class="print-slot filled"><span class="print-number">${p.number?`#${esc(p.number)}`:""}</span><span class="print-name">${esc(p.name)}</span></div>`;
 }
-function printGroup(group){
- return `<section class="print-unit"><h3>${esc(group.label)}</h3><div class="print-slots" style="--slot-cols:${group.columns}">${group.slots.map(printSlot).join("")}</div></section>`;
+function printPlayerCard(slotId){
+ const playerId=rosters[currentDivision]?.[slotId],p=playerId&&getPlayer(playerId);
+ if(!p)return `<div class="print-player-card empty"></div>`;
+ return `<div class="print-player-card"><span class="print-number">${p.number?`#${esc(p.number)}`:""}</span><span class="print-name">${esc(p.name)}</span></div>`;
+}
+function printPositionColumn(label, slotIds){
+ return `<section class="print-position"><h3>${esc(label)}</h3><div class="print-card-list">${slotIds.map(printPlayerCard).join("")}</div></section>`;
 }
 function renderPrintPages(){
- const lineup=groupsForView("lineup");
  const specialViews=[
-  ["Power Play", "pp1"],["Penalty Kill (1 man)", "pk1"],
+  ["Power Play", "pp1"],["Penalty Kill", "pk1"],
   ["Penalty Kill (2 man)", "pk2"],["Overtime", "ot"],["End of Game", "eog"]
  ];
+ const forwards=["Left Wing","Center","Right Wing"].map((label,col)=>
+  printPositionColumn(label,Array.from({length:4},(_,line)=>`F-${line+1}-${col+1}`))).join("");
+ const defense=["Left Defense","Right Defense"].map((label,col)=>
+  printPositionColumn(label,Array.from({length:3},(_,pair)=>`D-${pair+1}-${col+1}`))).join("");
+ const goalies=printPositionColumn("Goalies",["G-1","G-2"]);
  $("printPages").innerHTML=`
   <article class="print-page">
-   <div class="print-heading"><strong>ROCKY MOUNTAIN MOOSE</strong><span>${esc(currentDivision)} · Lineup / Depth Chart</span></div>
-   <div class="print-grid">${lineup.map(printGroup).join("")}</div>
+   <div class="print-heading"><strong>ROCKY MOUNTAIN MOOSE</strong><span>${esc(currentDivision)} · Lineup</span></div>
+   <section class="print-lineup-section"><h2>Forwards</h2><div class="print-position-grid" style="--pos-cols:3">${forwards}</div></section>
+   <section class="print-lineup-section"><h2>Defense</h2><div class="print-position-grid" style="--pos-cols:2">${defense}</div></section>
+   <section class="print-lineup-section"><h2>Goalies</h2><div class="print-position-grid" style="--pos-cols:2">${goalies}</div></section>
   </article>
   <article class="print-page special-print-page">
    <div class="print-heading"><strong>ROCKY MOUNTAIN MOOSE</strong><span>${esc(currentDivision)} · Special Teams</span></div>
